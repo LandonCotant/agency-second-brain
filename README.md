@@ -20,7 +20,7 @@ placeholders. The architecture, agents, Terraform, ADRs, and tests are real.
 | Knowledge surfacing | Hybrid search + MCP tools so the corpus answers in plain English |
 | Morning brief / evening reflection | Ranked daily synthesis off the founder's plate |
 
-## Design invariants (interview-relevant)
+## Design invariants 
 
 - **Drafts-only boundary** — agents prepare Gmail drafts / Airtable suggestions; humans approve.
 - **Sensitive-account isolation** — regulated / sensitive accounts are excluded at the CRM sync
