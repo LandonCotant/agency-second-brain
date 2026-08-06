@@ -1,0 +1,35 @@
+# Permanent Cloud Build config for the asb-triage-bridge image (ADR 0019 / 0061).
+#
+# ADR 0061 folded triage classification in-process into this image (the
+# Reasoning Engine was retired), so it now carries the genai + secret-manager +
+# requests deps — see Dockerfile.triage-bridge. Mirrors the per-agent build
+# pattern (cloudbuild.crm-updater.yaml et al.); previously the bridge had no
+# permanent config and was pushed out-of-band.
+#
+# Invocation:
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.triage-bridge.yaml \
+#     --substitutions=_TAG=adr-0061-local-classify-v1 \
+#     .
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.triage-bridge
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/triage-bridge:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/triage-bridge:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

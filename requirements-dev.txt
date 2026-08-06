@@ -1,0 +1,23 @@
+pre-commit==3.7.0
+detect-secrets==1.5.0
+ruff==0.4.4
+pytest==8.2.0
+google-cloud-bigquery>=3.20
+google-cloud-aiplatform>=1.46
+# VertexEmbedder/VertexClassifier do `from google import genai` at runtime
+# (audit F4 migration). Without this, local smoke-fires of any embed path fail
+# even though unit tests (which fake the embedder) pass.
+google-genai>=1.0
+google-cloud-pubsub>=2.21
+google-cloud-secret-manager>=2.20
+google-api-python-client>=2.140
+requests>=2.32
+responses>=0.25
+PyYAML>=6.0
+# Pinned in Dockerfile.knowledge-surfacer (ADR 0046 + 0050 /api/ask);
+# imported at module load by src/agency_brain/agents/knowledge_surfacer/main.py,
+# so test_api_ask.py collection fails without it.
+flask>=3.0
+# SQL parser for scripts/check_replica_column_refs.py (PR gate — dev/CI only,
+# never bundled into a runtime image).
+sqlglot>=25

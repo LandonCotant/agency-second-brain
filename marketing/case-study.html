@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Case Study — A Proactive AI Operations Brain</title>
+<style>
+  :root {
+    --ink: #14181f;
+    --muted: #5a6472;
+    --line: #e4e8ee;
+    --accent: #0b5cff;
+    --accent-soft: #eef3ff;
+    --good: #0f9d58;
+    --paper: #ffffff;
+    --band: #f6f8fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: #eceff3;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    width: 8.5in;
+    min-height: 11in;
+    margin: 24px auto;
+    background: var(--paper);
+    padding: 0.55in 0.6in 0.5in;
+    box-shadow: 0 8px 40px rgba(20,24,31,0.14);
+  }
+
+  /* Header */
+  .eyebrow {
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  h1 {
+    font-size: 26px;
+    line-height: 1.15;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .subhead {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 16px;
+    max-width: 46em;
+  }
+  .rule { height: 3px; background: var(--accent); width: 54px; border-radius: 2px; margin: 0 0 18px; }
+
+  /* Metrics band */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    background: var(--band);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 12px;
+    margin: 0 0 20px;
+  }
+  .metric { text-align: center; padding: 2px 4px; }
+  .metric .num {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .metric .num span { color: var(--accent); }
+  .metric .lab {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.25;
+  }
+
+  /* Two-col body */
+  .cols { display: grid; grid-template-columns: 1.05fr 1fr; gap: 26px; }
+  h2 {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+    font-weight: 700;
+  }
+  p { font-size: 12.5px; margin: 0 0 12px; }
+  .block { margin-bottom: 18px; }
+
+  ul.clean { list-style: none; margin: 0 0 12px; padding: 0; }
+  ul.clean li {
+    font-size: 12px;
+    padding: 0 0 8px 18px;
+    position: relative;
+    color: var(--ink);
+  }
+  ul.clean li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 6px;
+    width: 7px; height: 7px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  ul.clean li b { font-weight: 700; }
+
+  .result li::before { background: var(--good); }
+
+  /* Callout card */
+  .card {
+    background: var(--accent-soft);
+    border: 1px solid #d7e2ff;
+    border-radius: 10px;
+    padding: 14px 15px;
+    margin: 0 0 18px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 12.5px; color: var(--accent); }
+  .card p { font-size: 11.5px; margin: 0; color: #2a3646; }
+
+  /* Stack of labeled rows */
+  .stack .row { border-top: 1px solid var(--line); padding: 9px 0; }
+  .stack .row:first-child { border-top: none; padding-top: 0; }
+  .stack .row .t { font-size: 12px; font-weight: 700; }
+  .stack .row .d { font-size: 11.5px; color: var(--muted); }
+
+  /* MMM section */
+  .mmm {
+    margin-top: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    background: var(--paper);
+  }
+  .mmm h2 { color: var(--ink); }
+  .mmm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 4px; }
+  .mmm-grid .t { font-size: 11.5px; font-weight: 700; margin-bottom: 2px; }
+  .mmm-grid .d { font-size: 11px; color: var(--muted); }
+
+  /* Footer / CTA */
+  .cta {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .cta .lead { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+  .cta .sub { font-size: 11.5px; color: #b9c2d0; margin: 0; }
+  .cta .btn {
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 8px;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .foot {
+    margin-top: 12px;
+    font-size: 9.5px;
+    color: #9aa4b2;
+    text-align: center;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .sheet { box-shadow: none; margin: 0; width: auto; min-height: auto; padding: 0.4in 0.45in; }
+    @page { size: letter; margin: 0.3in; }
+  }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <p class="eyebrow">AI Implementation Case Study</p>
+    <h1>A Proactive AI Operations Brain for a Client-Services Business</h1>
+    <p class="subhead">
+      How a lean digital-marketing agency deployed a multi-agent AI system that watches its own
+      operations 24/7 — catching client-churn risk early, triaging inbound work, and turning scattered
+      email, calendar, and CRM data into an answerable institutional memory.
+    </p>
+    <div class="rule"></div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="num">~<span>$50</span>/mo</div>
+        <div class="lab">Total cloud run-cost, cost-guardrailed</div>
+      </div>
+      <div class="metric">
+        <div class="num"><span>&lt;5</span> min</div>
+        <div class="lab">From inbound signal to triaged, drafted action</div>
+      </div>
+      <div class="metric">
+        <div class="num"><span>100%</span></div>
+        <div class="lab">Human-approved — zero autonomous send</div>
+      </div>
+      <div class="metric">
+        <div class="num">12+ <span>agents</span></div>
+        <div class="lab">Specialized jobs running unattended daily</div>
+      </div>
+    </div>
+
+    <div class="cols">
+      <!-- LEFT -->
+      <div>
+        <div class="block">
+          <h2>The Challenge</h2>
+          <p>
+            A two-person marketing agency was losing leverage to operational overhead. Client-risk
+            signals — a slipping response, an owner disengaging, a deliverable met with silence — were
+            only noticed <i>after</i> they became churn. Inbound work piled up unclassified. And the
+            "who said what, when" context that keeps accounts healthy lived in one founder's head, email,
+            and a dozen Airtable views. Enterprise ops tooling was overkill; doing nothing was costing accounts.
+          </p>
+        </div>
+
+        <div class="block">
+          <h2>The Solution</h2>
+          <p>
+            We built a <b>multi-agent operations brain</b> on Google Cloud that runs continuously and
+            proactively. Independent agents each own one job — classify, watch for risk, extract
+            commitments, capture facts, brief the founder — writing structured outputs to a shared
+            warehouse. A conversational layer lets the founder <b>ask the whole corpus in plain English</b>.
+          </p>
+          <ul class="clean">
+            <li><b>Triage agent</b> — classifies every inbound signal and drafts the next action in minutes.</li>
+            <li><b>Risk watcher</b> — scores each client against segment-specific churn patterns, daily.</li>
+            <li><b>Memory layers</b> — automatically extracts commitments, facts, and relationships from the day's activity.</li>
+            <li><b>Knowledge surfacer</b> — hybrid search over the full history, answered with citations.</li>
+            <li><b>Daily brief &amp; reflection</b> — a composed, ranked view of what needs attention.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Human-in-the-loop by design</h3>
+          <p>
+            Every agent is <b>drafts-only</b> — it prepares email replies, tasks, and CRM updates for
+            one-click human approval, and is architecturally blocked from sending or writing to systems
+            of record on its own. Sensitive / regulated accounts are isolated at the infrastructure boundary.
+          </p>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <div class="block">
+          <h2>The Results</h2>
+          <ul class="clean result">
+            <li><b>Churn risk surfaced early.</b> Disengagement and "silent-after-deliverable" patterns are flagged automatically before they become cancellations.</li>
+            <li><b>Operational synthesis off the founder's plate.</b> A composed daily brief replaced manual inbox-and-Airtable triage each morning.</li>
+            <li><b>Institutional memory that answers back.</b> Client history, open commitments, and entity facts are now queryable in natural language — retrieval accuracy tuned to near-perfect on real queries.</li>
+            <li><b>Runs itself for the price of a phone plan.</b> The entire system operates unattended at ~$50/month, guardrailed by automated cost and security audits.</li>
+            <li><b>Built pragmatically.</b> Shipped in weeks by a single implementer — no enterprise ceremony, no vendor lock-in.</li>
+          </ul>
+        </div>
+
+        <div class="block">
+          <h2>How It's Built</h2>
+          <div class="stack">
+            <div class="row"><div class="t">Portable, model-agnostic core</div><div class="d">Agents do deterministic classification; the frontier LLM composes. Swap models with one config change.</div></div>
+            <div class="row"><div class="t">Open-protocol interface (MCP)</div><div class="d">17 tools exposed over an open standard — usable from phone, web, or desktop.</div></div>
+            <div class="row"><div class="t">Governed &amp; auditable</div><div class="d">Every classification, flag, and draft is logged; least-privilege access enforced on every change.</div></div>
+            <div class="row"><div class="t">Standard cloud data warehouse</div><div class="d">No proprietary black box — data stays queryable and yours.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mmm">
+      <h2>What this looks like beyond a two-person agency</h2>
+      <p style="font-size:11.5px; color:var(--muted); margin-bottom:12px;">
+        The same architecture scales from a lean shop to a multi-team client-services operation. The pattern —
+        proactive monitoring, AI triage, and an answerable institutional memory — maps onto any business
+        where account health lives in email, CRM, and calendars.
+      </p>
+      <div class="mmm-grid">
+        <div>
+          <div class="t">Account retention</div>
+          <div class="d">Flag at-risk clients — slipping engagement, silent deliverables, cooling buyers — before renewal season.</div>
+        </div>
+        <div>
+          <div class="t">Ops triage</div>
+          <div class="d">Auto-classify inbound requests and draft the next step for human approval — not autonomous send.</div>
+        </div>
+        <div>
+          <div class="t">Shared memory</div>
+          <div class="d">One queryable brain over email, CRM, and calendars so knowledge survives handoffs and turnover.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta">
+      <div>
+        <p class="lead">Explore the architecture in this repository.</p>
+        <p class="sub">Agents, Terraform, ADRs, security audits, and tests — a sanitized portfolio copy of a production system.</p>
+      </div>
+      <a class="btn" href="../README.md">View the README &rarr;</a>
+    </div>
+
+    <p class="foot">
+      Agency Second Brain &middot; Portfolio case study &nbsp;|&nbsp;
+      Built for a real client-services agency. Identifiers redacted; architecture preserved.
+    </p>
+  </div>
+</body>
+</html>

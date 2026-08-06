@@ -1,0 +1,69 @@
+# Golden-query set for retrieval eval (ADR 0068).
+#
+# Each entry pairs a real query with an expectation that SHOULD appear in
+# the top-k results. The harness (scripts/eval/retrieval_eval.py) runs every
+# query twice — pure-vector and hybrid — and reports the rank of the first
+# matching chunk under each mode, plus aggregate recall@k and MRR.
+#
+# Expectation (provide ONE, matched case-insensitively against results):
+#   expect_filename: substring of the note's filename
+#   expect_content:  substring of the note's markdown excerpt
+#
+# kind:
+#   sparse   — exact-token / proper-noun / short-text cases hybrid is meant
+#              to FIX. Success = hybrid rank <= vector rank on every one.
+#   semantic — paraphrase / conceptual recall. Guard against regression:
+#              hybrid must not push these out of the top-k.
+#
+# Grounded against the live corpus (2026-06-13): calendar events, the
+# Client A galaxy note, course events (Econometrics / Linear Algebra),
+# Graue networking notes, birthday events. Re-tune when the corpus shifts.
+
+# ---- sparse / exact-match cases (the motivation for hybrid) ----
+
+- query: "Graue networking presentation"
+  expect_filename: "Graue Networking"
+  kind: sparse
+  note: "Proper noun (Graue) + exact event title."
+
+- query: "Client A"
+  expect_filename: "ClientA"
+  kind: sparse
+  note: "Client proper noun across calendar + galaxy notes."
+
+- query: "Dermatology appointment"
+  expect_filename: "Dermatology"
+  kind: sparse
+  note: "Exact event-title match."
+
+- query: "Econometrics class"
+  expect_filename: "Econometrics"
+  kind: sparse
+  note: "Course name — many near-duplicate events."
+
+- query: "Parker birthday"
+  expect_filename: "Parker Birthday"
+  kind: sparse
+  note: "Name + sparse birthday text vectors blur together."
+
+- query: "when is rent due"
+  expect_filename: "Rent is Due"
+  kind: sparse
+  note: "Short recurring reminder, little semantic signal."
+
+# ---- semantic / regression-guard cases ----
+
+- query: "what courses am I taking this semester"
+  expect_filename: "Econometrics"
+  kind: semantic
+  note: "Conceptual recall — no literal 'course' token in titles."
+
+- query: "the private investigator client"
+  expect_filename: "ClientA"
+  kind: semantic
+  note: "Client A = private investigator; paraphrase, not keyword."
+
+- query: "a networking or social event"
+  expect_filename: "Graue"
+  kind: semantic
+  note: "Topical recall across Graue networking/BBQ notes."

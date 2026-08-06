@@ -1,0 +1,75 @@
+{
+  "asb-audit-logs-prod-sink": {
+    "roles/storage.legacyBucketOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyBucketReader": [
+      "projectViewer:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectReader": [
+      "projectViewer:agency-brain-demo"
+    ],
+    "roles/storage.objectCreator": [
+      "serviceAccount:service-000000000000@gcp-sa-logging.iam.gserviceaccount.com"
+    ],
+    "roles/storage.objectViewer": [
+      "user:owner@example.com"
+    ]
+  },
+  "agency-brain-demo-agent-artifacts": {
+    "roles/storage.legacyBucketOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyBucketReader": [
+      "projectViewer:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectReader": [
+      "projectViewer:agency-brain-demo"
+    ],
+    "roles/storage.objectViewer": [
+      "serviceAccount:asb-agent-triage-sa@agency-brain-demo.iam.gserviceaccount.com"
+    ]
+  },
+  "agency-brain-demo_cloudbuild": {
+    "roles/storage.legacyBucketOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyBucketReader": [
+      "projectViewer:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectReader": [
+      "projectViewer:agency-brain-demo"
+    ]
+  },
+  "agency-brain-demo_us-central1_cloudbuild": {
+    "roles/storage.legacyBucketOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyBucketReader": [
+      "projectViewer:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectOwner": [
+      "projectEditor:agency-brain-demo",
+      "projectOwner:agency-brain-demo"
+    ],
+    "roles/storage.legacyObjectReader": [
+      "projectViewer:agency-brain-demo"
+    ]
+  }
+}

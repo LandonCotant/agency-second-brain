@@ -1,0 +1,10 @@
+{
+  "source": "gmail",
+  "source_url": "https://mail.google.com/mail/u/0/#inbox/THREAD_actionable_001",
+  "source_event_ref": "msg_actionable_001",
+  "sender": "client.contact@acme-example.com",
+  "subject": "Q2 deliverable review — can we walk through the plan tomorrow?",
+  "body": "Hi the operator, our team has finished reviewing the Q2 marketing strategy doc you sent last week. We have a few questions about the channel mix and timing. Could we schedule a 30-min call tomorrow morning to walk through it before our exec meeting at 2pm? Thanks, Jane",
+  "ingested_at": "2026-04-28T20:15:00+00:00",
+  "aspects": ["client", "project"]
+}

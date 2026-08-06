@@ -1,0 +1,44 @@
+# Permanent Cloud Build config for the asb-risk-watcher image (ADR 0033).
+#
+# Used by manual rebuilds after a code change in
+# src/agency_brain/agents/risk_watcher/* or Dockerfile.risk-watcher
+# lands. The PR-time `cloudbuild.yaml` only verifies the Dockerfile
+# builds; this config also pushes the resulting image to AR so
+# `gcloud run jobs update` can roll it out.
+#
+# Invocation:
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.risk-watcher.yaml \
+#     --substitutions=_TAG=<tag> \
+#     .
+#
+# Substitution `_TAG` defaults to `bootstrap` for first-deploy. After
+# bootstrap, set _TAG to a traceable value tying the image to the
+# change that produced it (e.g., `adr-0033-risk-watcher-v1`).
+#
+# `serviceAccount:` is set explicitly because ADR 0018 disabled the
+# legacy `<projnum>@cloudbuild.gserviceaccount.com` default.
+# asb-cloud-build-sa holds `roles/artifactregistry.writer` per
+# foundation/iam.tf so the push step succeeds.
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.risk-watcher
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/risk-watcher:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/risk-watcher:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

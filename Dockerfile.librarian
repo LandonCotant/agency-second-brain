@@ -1,0 +1,36 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps for the WS-G Librarian (ADR 0044, daily-reflection-doc plan
+# Phase D). The agent:
+#  - Lists + downloads + moves Drive files (google-api-python-client + google-auth)
+#  - Extracts content via Vertex Gemini multimodal (google-cloud-aiplatform)
+#  - Classifies via google-genai with response_schema (lifts the same SDK
+#    pattern the evening_reflection structured composer + triage classifier use)
+#  - Reads/writes BigQuery (notes corpus + notes_links + audit log) via google-cloud-bigquery
+#  - Edits Google Docs `## Related` sections via the Docs API (google-api-python-client, same dep)
+#
+# Per CLAUDE.md "Codebase gotchas": every cross-boundary import lands here.
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-aiplatform>=1.46" \
+    "google-genai>=1.0" \
+    "google-api-python-client>=2.140" \
+    "google-auth>=2.32"
+
+# Source only — Librarian doesn't ship docs/runbooks at runtime.
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.librarian.main"]

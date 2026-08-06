@@ -1,0 +1,16 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_project_iam_member.bad_owner",
+      "type": "google_project_iam_member",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "project": "agency-brain-demo",
+          "role": "roles/owner",
+          "member": "serviceAccount:asb-bad-sa@agency-brain-demo.iam.gserviceaccount.com"
+        }
+      }
+    }
+  ]
+}

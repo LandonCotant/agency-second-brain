@@ -1,0 +1,51 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. Adds google-cloud-resource-manager (for IAM-policy reads in
+# hipaa_iam_drift / drafts_boundary_check) and google-cloud-storage (for
+# bucket_iam_drift) on top of what airtable_sync needs.
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-pubsub>=2.21" \
+    "google-cloud-secret-manager>=2.20" \
+    "google-cloud-resource-manager>=1.12" \
+    "google-cloud-storage>=2.16" \
+    "requests>=2.32"
+
+# Source. scripts/ is included so drafts_boundary_check.py can import
+# `is_forbidden_role` / `is_service_account` from least_privilege_check.py
+# (kept in lock-step with the PR-time gate).
+COPY src/ ./src/
+COPY scripts/least_privilege_check.py ./scripts/least_privilege_check.py
+
+# DWD scopes doc — drafts_boundary_check.py reads this at runtime as the
+# source-of-truth allowlist (ADR 0027). The module resolves the path via
+# Path(__file__).parents[3] / "docs" / "dwd_scopes.md", which lands at
+# /app/docs/dwd_scopes.md inside the container.
+COPY docs/dwd_scopes.md ./docs/dwd_scopes.md
+
+# Baseline expected-state JSON for hipaa_iam_drift and bucket_iam_drift.
+# Module path matches the BASELINE_PATH env defaults in those scripts.
+COPY terraform/modules/security/expected/ ./security/expected/
+
+# W3: airtable_schema_drift reads schema.json as the declared baseline.
+# The audit module's resolve_schema_path() probes /app/airtable/schema.json
+# first, so the COPY destination here matches the runtime expectation.
+COPY airtable/schema.json ./airtable/schema.json
+
+ENV PYTHONPATH=/app/src:/app/scripts
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+# Each asb-audit-* Cloud Run Job overrides args = ["python", "-m",
+# "agency_brain.audit.<script>"]. No CMD here — running the image
+# without an args override is intentionally an error.
+ENTRYPOINT []

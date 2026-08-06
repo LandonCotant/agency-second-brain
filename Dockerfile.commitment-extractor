@@ -1,0 +1,32 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. The commitment extractor (ADR 0069) needs:
+#  - google-cloud-bigquery (scan notes, resolve account, write commitments + watermark)
+#  - google-cloud-aiplatform + google-genai (Vertex Gemini structured response)
+#
+# Drafts-only: no Gmail/Drive/Chat/Secret-Manager deps — it never dispatches.
+# Per CLAUDE.md codebase gotchas: each agent pins its own deps. Adding an
+# import that crosses a new dep boundary requires updating this list AND
+# rebuilding; otherwise it fails at runtime, not build time.
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-aiplatform>=1.46" \
+    "google-genai>=1.0.0"
+
+# Source only — no schema.json / runbooks needed at runtime.
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.commitment_extractor.main"]

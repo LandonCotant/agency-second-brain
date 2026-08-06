@@ -1,0 +1,43 @@
+# Permanent Cloud Build config for the asb-airtable-sync image.
+#
+# Used by manual rebuilds after a code change in
+# src/agency_brain/sync/* or airtable/schema.json (the sync image
+# bundles schema.json at build time per Dockerfile:23 — every
+# schema.json edit must be paired with an image rebuild + Cloud Run
+# Job rollout, otherwise the next sync's WRITE_TRUNCATE will revert
+# the BQ replica to the pre-edit schema).
+#
+# The PR-time `cloudbuild.yaml` only verifies the Dockerfile builds;
+# this config also pushes the resulting image to AR so
+# `gcloud run jobs update` (or terraform apply) can roll it out.
+#
+# Invocation:
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.airtable-sync.yaml \
+#     --substitutions=_TAG=adr-NNNN-shortname \
+#     .
+#
+# Substitution `_TAG` defaults to `bootstrap` for first-deploy. After
+# bootstrap, set _TAG to a traceable value tying the image to the change
+# that produced it (e.g., `adr-0042-schema-v1`).
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-sync/airtable-to-bq:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-sync/airtable-to-bq:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

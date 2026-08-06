@@ -1,0 +1,29 @@
+# Permanent Cloud Build config for the asb-crm-updater image (ADR 0047).
+#
+# Invocation:
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.crm-updater.yaml \
+#     --substitutions=_TAG=adr-0047-crm-updater-v1 \
+#     .
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.crm-updater
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/crm-updater:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/crm-updater:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

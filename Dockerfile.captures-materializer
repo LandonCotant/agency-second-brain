@@ -1,0 +1,41 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. The captures materializer needs:
+#  - google-cloud-bigquery       (read airtable_replica + write agent_outputs + audit)
+#  - google-cloud-pubsub         (publish into asb-triage-input for note + todo Kinds)
+#  - google-cloud-aiplatform     (Vertex init for inline embed on note Kind, ADR 0039 §6)
+#  - google-genai                 (genai.Client(vertexai=True) — VertexEmbedder, audit F4 migration)
+#  - google-cloud-secret-manager (fetch airtable-tasks-write-pat-prod)
+#  - google-auth                 (ADC)
+#  - pyairtable                  (mutate Captures rows: flip Synced + DELETE)
+#
+# Per the codebase gotchas section in CLAUDE.md: every cross-boundary import
+# must be in this Dockerfile or it'll fail at runtime, not build time. PR
+# #82/#83 was a 30-min fire drill for exactly this.
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-pubsub>=2.21" \
+    "google-cloud-aiplatform>=1.46" \
+    "google-genai>=1.0" \
+    "google-cloud-secret-manager>=2.20" \
+    "google-auth>=2.32" \
+    "pyairtable>=2.3"
+
+# Source only — no schema.json / runbooks / docs/dwd_scopes.md needed at
+# runtime (the materializer reads BQ + Airtable + writes BQ + Pub/Sub).
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.captures_materializer.main"]

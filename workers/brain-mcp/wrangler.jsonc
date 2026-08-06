@@ -1,0 +1,50 @@
+// Remote brain MCP server — ADR 0067.
+// Deploy: npx wrangler deploy (from this directory).
+// Secrets (wrangler secret put): GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+// WIF_PRIVATE_KEY (the Worker's own RSA signing key for keyless GCP auth
+// via Workload Identity Federation — NOT a GCP SA key; org policy blocks
+// those. Rotatable via the published JWKS).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "brain-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "BRAIN_PROJECT_ID": "agency-brain-demo",
+    "BRAIN_VERTEX_LOCATION": "us-central1",
+    "BRAIN_OUTPUTS_DATASET": "agent_outputs",
+    "ALLOWED_EMAILS": "owner@example.com",
+    "BRAIN_BRIEFS_FOLDER_ID": "FOLDER_ID_BRIEFS_REDACTED",
+    "BRAIN_REFLECTIONS_FOLDER_ID": "FOLDER_ID_REFLECTIONS_REDACTED",
+    "BRAIN_REVIEWS_FOLDER_ID": "FOLDER_ID_REVIEWS_REDACTED",
+    "WIF_ISSUER": "https://brain-mcp.example.workers.dev",
+    "WIF_AUDIENCE": "brain-mcp-worker",
+    "WIF_PROVIDER": "//iam.googleapis.com/projects/000000000000/locations/global/workloadIdentityPools/brain-mcp-pool/providers/brain-mcp-oidc",
+    "TB_MCP_SA_EMAIL": "asb-mcp-sa@agency-brain-demo.iam.gserviceaccount.com",
+    "BRAIN_DRIVE_IMPERSONATION_SA": "asb-agent-triage-sa@agency-brain-demo.iam.gserviceaccount.com"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "00000000000000000000000000000000"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "BrainMCP",
+        "name": "MCP_OBJECT"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["BrainMCP"]
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

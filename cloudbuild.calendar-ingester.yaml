@@ -1,0 +1,33 @@
+# Permanent Cloud Build config for the asb-calendar-ingester image (ADR 0046).
+#
+# Used by manual rebuilds after a code change in
+# src/agency_brain/agents/calendar_ingester/* or
+# Dockerfile.calendar-ingester lands. Mirrors cloudbuild.notes-ingestor.yaml.
+#
+# Invocation:
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.calendar-ingester.yaml \
+#     --substitutions=_TAG=adr-0046-calendar-ingester-v1 \
+#     .
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.calendar-ingester
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/calendar-ingester:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/calendar-ingester:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

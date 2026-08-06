@@ -1,0 +1,39 @@
+# Permanent Cloud Build config for the asb-captures-materializer image.
+#
+# Used by manual rebuilds after a code change in
+# src/agency_brain/agents/captures_materializer/* or
+# Dockerfile.captures-materializer lands. The PR-time `cloudbuild.yaml`
+# only verifies the Dockerfile builds; this config also pushes the
+# resulting image to AR so `gcloud run jobs update` can roll it out.
+#
+# Invocation (per ADR 0039 §Verification):
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.captures-materializer.yaml \
+#     --substitutions=_TAG=adr-0039-captures-materializer-v1 \
+#     .
+#
+# Substitution `_TAG` defaults to `bootstrap` for first-deploy. After
+# bootstrap, set _TAG to a traceable value tying the image to the change
+# that produced it (e.g., `adr-0039-captures-materializer-v1`).
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.captures-materializer
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/captures-materializer:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/captures-materializer:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

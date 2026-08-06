@@ -1,0 +1,39 @@
+# Permanent Cloud Build config for the asb-fact-extractor image (ADR 0070).
+#
+# Used by manual rebuilds after a code change in
+# src/agency_brain/agents/fact_extractor/* or Dockerfile.fact-extractor.
+# The PR-time `cloudbuild.yaml` only verifies the Dockerfile builds; this
+# config also pushes to AR so `gcloud run jobs update` can roll it out.
+#
+# Invocation:
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.fact-extractor.yaml \
+#     --substitutions=_TAG=<tag> \
+#     .
+#
+# `_TAG` defaults to `bootstrap` for first-deploy; after bootstrap set it to a
+# traceable value (e.g., `adr-0070-fact-extractor-v1`).
+#
+# serviceAccount explicit because ADR 0018 disabled the legacy cloudbuild SA.
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.fact-extractor
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/fact-extractor:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/fact-extractor:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

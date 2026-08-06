@@ -1,0 +1,30 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. The fan-out worker needs:
+#  - google-cloud-bigquery (poll triaged_items + INSERT routed_events + audit row)
+#  - google-cloud-secret-manager (read second-brain-gchat-webhook URL)
+#  - google-api-python-client + google-auth (Gmail draft channel via DWD,
+#    ADR 0032; impersonates asb-agent-triage-sa with gmail.compose scope)
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-secret-manager>=2.20" \
+    "google-api-python-client>=2.140" \
+    "google-auth>=2.32"
+
+# Source only — no schema.json or scripts needed for the fan-out worker.
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.routing.fanout_main"]

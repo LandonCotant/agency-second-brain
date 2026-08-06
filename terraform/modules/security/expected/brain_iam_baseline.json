@@ -1,0 +1,122 @@
+{
+  "projects/agency-brain-demo/roles/tbAgentTriage": [
+    "serviceAccount:asb-agent-triage-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbAiopsDashboard": [
+    "serviceAccount:asb-aiops-dashboard-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbAuditAirtableSchemaDrift": [
+    "serviceAccount:asb-audit-airtbl-drift@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbAuditBucketIamDrift": [
+    "serviceAccount:asb-audit-bucket-iam@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbAuditCostDailyCheck": [
+    "serviceAccount:asb-audit-cost-daily@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbAuditDraftsBoundary": [
+    "serviceAccount:asb-audit-drafts-bnd@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbAuditHipaaIamDrift": [
+    "serviceAccount:asb-audit-sensitive-iam@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbAuditHipaaIsolation": [
+    "serviceAccount:asb-audit-sensitive-iso@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbBragSpotter": [
+    "serviceAccount:asb-brag-spotter-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbCalendarIngester": [
+    "serviceAccount:asb-calendar-ingester-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbCapturesMaterializer": [
+    "serviceAccount:asb-captures-materializer-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbCrmUpdater": [
+    "serviceAccount:asb-crm-updater-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbLibrarian": [
+    "serviceAccount:asb-librarian-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbMcpRemote": [
+    "serviceAccount:asb-mcp-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbNotesIngestor": [
+    "serviceAccount:asb-notes-ingestor-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbPeopleSync": [
+    "serviceAccount:asb-people-sync-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbRiskWatcher": [
+    "serviceAccount:asb-risk-watcher-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbRoutingFanout": [
+    "serviceAccount:asb-routing-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "projects/agency-brain-demo/roles/tbSyncAirtable": [
+    "serviceAccount:asb-sync-airtable-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "roles/aiplatform.reasoningEngineServiceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
+  ],
+  "roles/aiplatform.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-aiplatform.iam.gserviceaccount.com"
+  ],
+  "roles/artifactregistry.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-artifactregistry.iam.gserviceaccount.com"
+  ],
+  "roles/artifactregistry.writer": [
+    "serviceAccount:asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "roles/cloudaicompanion.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-cloudaicompanion.iam.gserviceaccount.com"
+  ],
+  "roles/cloudbuild.builds.builder": [
+    "serviceAccount:000000000000@cloudbuild.gserviceaccount.com"
+  ],
+  "roles/cloudbuild.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-cloudbuild.iam.gserviceaccount.com"
+  ],
+  "roles/cloudscheduler.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-cloudscheduler.iam.gserviceaccount.com"
+  ],
+  "roles/compute.instanceGroupManagerServiceAgent": [
+    "serviceAccount:000000000000@cloudservices.gserviceaccount.com"
+  ],
+  "roles/compute.serviceAgent": [
+    "serviceAccount:service-000000000000@compute-system.iam.gserviceaccount.com"
+  ],
+  "roles/containeranalysis.ServiceAgent": [
+    "serviceAccount:service-000000000000@container-analysis.iam.gserviceaccount.com"
+  ],
+  "roles/containerregistry.ServiceAgent": [
+    "serviceAccount:service-000000000000@containerregistry.iam.gserviceaccount.com"
+  ],
+  "roles/dataplex.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-dataplex.iam.gserviceaccount.com"
+  ],
+  "roles/logging.logWriter": [
+    "serviceAccount:asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "roles/logging.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-logging.iam.gserviceaccount.com"
+  ],
+  "roles/modelarmor.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-modelarmor.iam.gserviceaccount.com"
+  ],
+  "roles/modelarmor.user": [
+    "serviceAccount:asb-agent-triage-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ],
+  "roles/owner": [
+    "user:owner@example.com"
+  ],
+  "roles/pubsub.serviceAgent": [
+    "serviceAccount:service-000000000000@gcp-sa-pubsub.iam.gserviceaccount.com"
+  ],
+  "roles/run.serviceAgent": [
+    "serviceAccount:service-000000000000@serverless-robot-prod.iam.gserviceaccount.com"
+  ],
+  "roles/viewer": [
+    "serviceAccount:asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com"
+  ]
+}

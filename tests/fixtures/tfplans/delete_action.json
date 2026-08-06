@@ -1,0 +1,29 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_project_iam_member.removed_bad_owner",
+      "type": "google_project_iam_member",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "project": "agency-brain-demo",
+          "role": "roles/owner",
+          "member": "serviceAccount:asb-bad-sa@agency-brain-demo.iam.gserviceaccount.com"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "google_project_iam_member.noop_viewer",
+      "type": "google_project_iam_member",
+      "change": {
+        "actions": ["no-op"],
+        "after": {
+          "project": "agency-brain-demo",
+          "role": "roles/owner",
+          "member": "serviceAccount:asb-noop-sa@agency-brain-demo.iam.gserviceaccount.com"
+        }
+      }
+    }
+  ]
+}

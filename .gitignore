@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+.venv-*/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars.local
+tfplan.bin
+tfplan*.json
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# Portfolio copy: never commit live tfvars. Only terraform.tfvars.example ships.
+terraform.tfvars
+# .terraform.lock.hcl may be committed for reproducible providers.
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/worktrees/
+
+# Secrets — defense in depth (see .pre-commit-config.yaml)
+*.pem
+*.key
+*-credentials.json
+service-account-*.json

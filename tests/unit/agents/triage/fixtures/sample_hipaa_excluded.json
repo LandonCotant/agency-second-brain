@@ -1,0 +1,10 @@
+{
+  "source": "gmail",
+  "source_url": "https://mail.google.com/mail/u/0/#inbox/THREAD_hipaa_001",
+  "source_event_ref": "msg_hipaa_001",
+  "sender": "ops@hipaa-flagged-client.example",
+  "subject": "Patient outreach campaign — Q2 plan",
+  "body": "<filtered upstream by sync; should never reach Triage>",
+  "ingested_at": "2026-04-28T20:25:00+00:00",
+  "aspects": ["client", "project", "hipaa_excluded"]
+}

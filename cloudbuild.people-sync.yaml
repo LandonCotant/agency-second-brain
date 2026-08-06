@@ -1,0 +1,41 @@
+# Permanent Cloud Build config for the asb-people-sync image (ADR 0057).
+#
+# Used by manual rebuilds after a code change in
+# src/agency_brain/agents/people_sync/* or Dockerfile.people-sync lands.
+# The PR-time `cloudbuild.yaml` only verifies the Dockerfile builds; this
+# config also pushes the resulting image to AR so `gcloud run jobs update`
+# can roll it out.
+#
+# Invocation:
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.people-sync.yaml \
+#     --substitutions=_TAG=<tag> \
+#     .
+#
+# Substitution `_TAG` defaults to `bootstrap` for first-deploy. After
+# bootstrap, set _TAG to a traceable value (e.g., `adr-0057-v1`).
+#
+# `serviceAccount:` is set explicitly because ADR 0018 disabled the legacy
+# default. asb-cloud-build-sa holds `roles/artifactregistry.writer`.
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.people-sync
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/people-sync:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/people-sync:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

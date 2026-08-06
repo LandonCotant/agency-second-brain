@@ -1,0 +1,31 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. The brief needs:
+#  - google-cloud-bigquery (read triaged_items / airtable_replica + write briefs + audit rows)
+#  - google-genai (google.genai.Client(vertexai=True) direct call per ADR 0029; F4 migration off the EOL'd vertexai.generative_models module)
+#  - google-api-python-client + google-auth (DWD impersonation for Calendar + Gmail drafts)
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-genai>=1.0" \
+    "google-api-python-client>=2.140" \
+    "google-auth>=2.32"
+
+# Source only — no schema.json / runbooks / docs/dwd_scopes.md needed at
+# runtime (the brief reads BQ, Calendar, and writes Gmail; it does not
+# read any in-repo doc, unlike the audit image).
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.morning_brief.main"]

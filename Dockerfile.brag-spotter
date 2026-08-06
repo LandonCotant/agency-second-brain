@@ -1,0 +1,37 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. Brag Spotter needs:
+#  - google-cloud-bigquery (read 5 sources + existing wins, write wins + audit rows)
+#  - google-cloud-aiplatform + google-genai (Vertex Gemini structured response per ADR 0043 §4)
+#  - google-api-python-client + google-auth (DWD impersonation for Gmail drafts)
+#  - google-cloud-secret-manager (read second-brain-gchat-webhook for Chat dispatch)
+#
+# Per CLAUDE.md codebase gotchas: each agent pins its own deps. Adding an
+# import that crosses a new dep boundary requires updating this list AND
+# rebuilding the image; otherwise it fails at runtime, not build time.
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-aiplatform>=1.46" \
+    "google-genai>=1.0.0" \
+    "google-api-python-client>=2.140" \
+    "google-auth>=2.32" \
+    "google-cloud-secret-manager>=2.20"
+
+# Source only — no schema.json / runbooks needed at runtime. The agent
+# reads BQ, posts to Chat webhook, drafts Gmail.
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.brag_spotter.main"]

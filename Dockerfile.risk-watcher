@@ -1,0 +1,30 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. The risk watcher needs:
+#  - google-cloud-bigquery     (read airtable_replica + agent_outputs;
+#                               write risk_flags + audit rows)
+#  - google-auth               (ADC for the runtime SA)
+#  - google-api-python-client  (Calendar v3 for Local Service Owner
+#                               Disengagement, ADR 0034 §4)
+# No Vertex / no Drive / no Pub/Sub.
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-auth>=2.32" \
+    "google-api-python-client>=2.140"
+
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.risk_watcher.main"]

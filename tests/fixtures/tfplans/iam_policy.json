@@ -1,0 +1,15 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_project_iam_policy.brain",
+      "type": "google_project_iam_policy",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "project": "agency-brain-demo",
+          "policy_data": "{\"bindings\":[{\"role\":\"roles/viewer\",\"members\":[\"serviceAccount:asb-ok-sa@agency-brain-demo.iam.gserviceaccount.com\"]},{\"role\":\"roles/owner\",\"members\":[\"serviceAccount:asb-bad-policy@agency-brain-demo.iam.gserviceaccount.com\",\"user:personal@example.com\"]}]}"
+        }
+      }
+    }
+  ]
+}

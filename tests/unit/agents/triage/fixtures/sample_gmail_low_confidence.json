@@ -1,0 +1,10 @@
+{
+  "source": "gmail",
+  "source_url": "https://mail.google.com/mail/u/0/#inbox/THREAD_ambiguous_001",
+  "source_event_ref": "msg_ambiguous_001",
+  "sender": "newsletter@industry-publication.example",
+  "subject": "Weekly digest — 12 articles you may have missed",
+  "body": "Stay on top of the latest in digital marketing. This week's picks include a deep dive on attribution modeling, an interview with a CMO, and a roundup of new ad formats.",
+  "ingested_at": "2026-04-28T20:20:00+00:00",
+  "aspects": []
+}

@@ -1,0 +1,45 @@
+# Permanent Cloud Build config for the asb-morning-brief image.
+#
+# Used by manual rebuilds after a code change in
+# src/agency_brain/agents/morning_brief/* or Dockerfile.morning-brief
+# lands. The PR-time `cloudbuild.yaml` only verifies the Dockerfile
+# builds; this config also pushes the resulting image to AR so
+# `gcloud run jobs update` can roll it out.
+#
+# Invocation (per ADR 0029 §Rollout):
+#   gcloud builds submit \
+#     --project=agency-brain-demo \
+#     --region=us-central1 \
+#     --default-buckets-behavior=regional-user-owned-bucket \
+#     --config=cloudbuild.morning-brief.yaml \
+#     --substitutions=_TAG=<tag> \
+#     .
+#
+# Substitution `_TAG` defaults to `bootstrap` for first-deploy. After
+# bootstrap, set _TAG to a traceable value tying the image to the
+# change that produced it (e.g., `adr-0029-morning-brief-v1`, mirrors
+# the pattern used in PR #50 / PR #52 / PR #54 / PR #59).
+#
+# `serviceAccount:` is set explicitly because ADR 0018 disabled the
+# legacy `<projnum>@cloudbuild.gserviceaccount.com` default.
+# asb-cloud-build-sa holds `roles/artifactregistry.writer` per
+# foundation/iam.tf (PR #58) so the push step succeeds.
+
+substitutions:
+  _TAG: bootstrap
+
+serviceAccount: projects/agency-brain-demo/serviceAccounts/asb-cloud-build-sa@agency-brain-demo.iam.gserviceaccount.com
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.morning-brief
+      - --tag=us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/morning-brief:${_TAG}
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/agency-brain-demo/asb-agents/morning-brief:${_TAG}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

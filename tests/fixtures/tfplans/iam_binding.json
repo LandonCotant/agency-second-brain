@@ -1,0 +1,20 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_project_iam_binding.editors",
+      "type": "google_project_iam_binding",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "project": "agency-brain-demo",
+          "role": "roles/editor",
+          "members": [
+            "serviceAccount:asb-bad-1@agency-brain-demo.iam.gserviceaccount.com",
+            "serviceAccount:asb-bad-2@agency-brain-demo.iam.gserviceaccount.com",
+            "user:personal@example.com"
+          ]
+        }
+      }
+    }
+  ]
+}

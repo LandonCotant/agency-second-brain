@@ -1,0 +1,304 @@
+# Cloud Build pipeline for PR checks. Triggered by GitHub PR events.
+# Branch protection on `main` requires this build to pass before merge.
+#
+# Each step is a PRD §4.8 PR security gate. Steps run sequentially because
+# later steps depend on terraform plan output.
+
+steps:
+  - id: install-deps
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        pip install --no-cache-dir -r requirements-dev.txt
+        pip install --no-cache-dir tflint-py==0.50.3 || true
+
+  - id: terraform-fmt-validate
+    name: hashicorp/terraform:1.7
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        set -eu
+        terraform -chdir=terraform/envs/prod fmt -check -recursive
+        terraform -chdir=terraform/envs/prod init -backend=false
+        terraform -chdir=terraform/envs/prod validate
+        for mod in foundation agent_runtime data_pipeline security observability; do
+          terraform -chdir=terraform/modules/$mod init -backend=false
+          terraform -chdir=terraform/modules/$mod validate
+        done
+
+  - id: tflint
+    name: ghcr.io/terraform-linters/tflint:v0.51.0
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        set -eu
+        cd terraform/modules/foundation
+        tflint --init --config=../../../.tflint.hcl
+        tflint --config=../../../.tflint.hcl
+
+  - id: detect-secrets
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        # detect-secrets shells out to git to find the repo root; slim image has no git.
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends git
+        pip install --no-cache-dir detect-secrets==1.5.0
+        detect-secrets scan --baseline .secrets.baseline
+
+  - id: terraform-plan
+    name: hashicorp/terraform:1.7
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        set -eu
+        cd terraform/envs/prod
+        terraform init
+        terraform plan -out=tfplan.bin -var-file=ci.tfvars || true
+        terraform show -json tfplan.bin > tfplan.json 2>/dev/null || echo '{}' > tfplan.json
+    # ci.tfvars is mounted by the trigger; for PRs without infra changes the
+    # plan can be empty (we tolerate that — gates below handle the empty case).
+
+  - id: least-privilege-check
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        python scripts/least_privilege_check.py terraform/envs/prod/tfplan.json
+
+  - id: hipaa-filter-check
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        python scripts/hipaa_filter_check.py
+
+  # W1 hardening (2026-05-28 audit): assert Python ↔ Terraform parity for
+  # _TYPE_MAP / airtable_to_bq_type and _SYSTEM_COLUMNS / system_columns.
+  # PR #173 broke CI on terraform-fmt-validate because the audit edit added
+  # richText/dateTime/autoNumber on the Python side without the parallel
+  # terraform entries. This gate fails the PR before that becomes a CI
+  # rabbit hole.
+  - id: schema-mapping-alignment-check
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        python scripts/check_schema_mapping_alignment.py
+
+  - id: model-armor-check
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        python scripts/model_armor_check.py
+
+  # Fail the build if any SQL under src/agency_brain/ references an
+  # airtable_replica.<table> column that doesn't exist in airtable/schema.json
+  # (+ system columns). Catches the F9-cleanup regression class (2026-05-28):
+  # a column removed from schema.json but still queried 400s at runtime —
+  # silently, for days, until the Cloud Run error alert fires.
+  - id: replica-column-refs-check
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        pip install --no-cache-dir sqlglot
+        python scripts/check_replica_column_refs.py
+
+  # PRD §4.7 / ADR 0027: drafts-only static guard. Fail the build if any
+  # source under src/agency_brain/ references Gmail send/modify call
+  # sites or the forbidden DWD scope literals (``gmail.send`` /
+  # ``gmail.modify``). Pairs with the doc-driven runtime audit in
+  # ``src/agency_brain/audit/drafts_boundary_check.py``.
+  - id: drafts-static-check
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        python scripts/drafts_static_check.py
+
+  # PRD §4.2 runtime check: only allowlisted SAs may exist on the Brain
+  # project, and any GCP-default SAs created by transitive API enablement
+  # (e.g. the Compute Engine default SA pulled in by cloudbuild →
+  # containerregistry → compute) must be disabled. Uses cloud-sdk image so
+  # gcloud + python3 are both available.
+  - id: sa-allowlist-check
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        gcloud iam service-accounts list \
+          --project=agency-brain-demo \
+          --format=json \
+          | python3 scripts/sa_allowlist_check.py
+
+  - id: pytest
+    name: python:3.12-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        pip install --no-cache-dir -r requirements-dev.txt
+        pytest tests/ -v
+
+  # Verify the Airtable → BQ sync container builds. Push + Cloud Run rollout
+  # happen out-of-band today (manual ``gcloud run jobs update`` after merge,
+  # documented in docs/runbooks/airtable_pat_rotation.md). Keeping this step
+  # PR-only verification means the Dockerfile can't silently break.
+  - id: build-airtable-sync-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag=asb-airtable-sync:${SHORT_SHA}
+      - .
+
+  # Verify the runtime-audit container builds. Same out-of-band push model
+  # as airtable-sync: PR run is build-only; the first real image goes up
+  # via `gcloud builds submit` per docs/runbooks/runtime_audit_response.md
+  # before the first scheduler tick lands.
+  - id: build-audit-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.audit
+      - --tag=asb-audit:${SHORT_SHA}
+      - .
+
+  # Verify the triage Pub/Sub→RE bridge container builds (PR 4d / ADR 0019).
+  # Same out-of-band push model — first image to `asb-agents/triage-bridge:bootstrap`
+  # goes up before the first scheduler tick.
+  - id: build-triage-bridge-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.triage-bridge
+      - --tag=asb-triage-bridge:${SHORT_SHA}
+      - .
+
+  # Verify the WS-D routing fan-out worker container builds (ADR 0023).
+  # Same out-of-band push model — first image to
+  # `asb-agents/routing-fanout:bootstrap` goes up before the scheduler is
+  # unpaused.
+  - id: build-routing-fanout-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.routing-fanout
+      - --tag=asb-routing-fanout:${SHORT_SHA}
+      - .
+
+  # Verify the WS-G3 Morning Brief container builds (ADR 0029). Same
+  # out-of-band push model — first image goes up via
+  # `cloudbuild.morning-brief.yaml` before the scheduler fires.
+  - id: build-morning-brief-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.morning-brief
+      - --tag=asb-morning-brief:${SHORT_SHA}
+      - .
+
+  # Verify the Samsung Notes ingestor container builds (ADR 0031). Same
+  # out-of-band push model — first image goes up via
+  # `cloudbuild.notes-ingestor.yaml` before the scheduler fires.
+  - id: build-notes-ingestor-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.notes-ingestor
+      - --tag=asb-notes-ingestor:${SHORT_SHA}
+      - .
+
+  # Verify the WS-G4 Evening Reflection container builds (ADR 0036). Same
+  # out-of-band push model — first image goes up via
+  # `cloudbuild.evening-reflection.yaml` before the scheduler fires.
+  - id: build-evening-reflection-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.evening-reflection
+      - --tag=asb-evening-reflection:${SHORT_SHA}
+      - .
+
+  # Verify the WS-G PKM Phase 0b Captures materializer container builds
+  # (ADR 0039). Same out-of-band push model — first image goes up via
+  # `cloudbuild.captures-materializer.yaml` before the scheduler fires.
+  - id: build-captures-materializer-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.captures-materializer
+      - --tag=asb-captures-materializer:${SHORT_SHA}
+      - .
+
+  # Verify the WS-G PKM Phase 3 Brag Spotter container builds (ADR 0043).
+  # Same out-of-band push model — first image goes up via
+  # `cloudbuild.brag-spotter.yaml` before the scheduler fires.
+  - id: build-brag-spotter-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.brag-spotter
+      - --tag=asb-brag-spotter:${SHORT_SHA}
+      - .
+
+  # Verify the WS-G2 Risk Watcher container builds (ADR 0033). Same
+  # out-of-band push model — first image goes up via
+  # `cloudbuild.risk-watcher.yaml` before the scheduler fires.
+  - id: build-risk-watcher-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.risk-watcher
+      - --tag=asb-risk-watcher:${SHORT_SHA}
+      - .
+
+  # Verify the ADR 0069 commitment-extractor container builds. Same
+  # out-of-band push model — first image via
+  # `cloudbuild.commitment-extractor.yaml` before the scheduler fires.
+  - id: build-commitment-extractor-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.commitment-extractor
+      - --tag=asb-commitment-extractor:${SHORT_SHA}
+      - .
+
+  # Verify the ADR 0070 fact-extractor container builds. Same out-of-band
+  # push model — first image via `cloudbuild.fact-extractor.yaml`.
+  - id: build-fact-extractor-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.fact-extractor
+      - --tag=asb-fact-extractor:${SHORT_SHA}
+      - .
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s

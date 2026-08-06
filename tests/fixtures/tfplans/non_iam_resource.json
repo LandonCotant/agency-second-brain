@@ -1,0 +1,15 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_iam_workforce_pool.example",
+      "type": "google_iam_workforce_pool",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "workforce_pool_id": "example-pool",
+          "parent": "organizations/000000000000"
+        }
+      }
+    }
+  ]
+}

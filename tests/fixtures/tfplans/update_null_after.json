@@ -1,0 +1,12 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_project_iam_member.computed_after",
+      "type": "google_project_iam_member",
+      "change": {
+        "actions": ["update"],
+        "after": null
+      }
+    }
+  ]
+}

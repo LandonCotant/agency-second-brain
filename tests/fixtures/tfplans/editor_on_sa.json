@@ -1,0 +1,16 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_project_iam_member.bad_editor",
+      "type": "google_project_iam_member",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "project": "agency-brain-demo",
+          "role": "roles/editor",
+          "member": "serviceAccount:asb-editor-sa@agency-brain-demo.iam.gserviceaccount.com"
+        }
+      }
+    }
+  ]
+}

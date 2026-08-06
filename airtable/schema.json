@@ -1,0 +1,1075 @@
+{
+  "_comment": "PORTFOLIO COPY \u2014 redacted schema for the Agency Operations Airtable base. Table/field shapes preserved; live base IDs, collaborator emails, and client examples removed. Per ADR 0020 this is a single base (Accounts/Contacts/Contracts + delivery). Schema drift is never auto-applied. See docs/runbooks/airtable_operations_base_setup.md.",
+  "_base_purpose": "Single Airtable base for a client-services agency. Owns Accounts, Contacts, Contracts, and delivery (Projects, Tasks, Goals, Goal Scores, Team, Risk Profiles, Service Catalog).",
+  "tables": {
+    "Accounts": {
+      "description": "Companies the agency works with \u2014 the canonical client record (post-ADR-0020 collapse). Carries both sales-side fields (Total Lifetime Value, Industry) and operational fields (Segment, Status, Account Manager, HIPAA). Replaces the old Clients table. The sensitive-account (HIPAA) checkbox is load-bearing (PRD \u00a74.1 layer 2) \u2014 false on every row today; flipping it removes the account and all linked Projects/Contacts/Contracts/Tasks from sync.",
+      "hipaa_root": true,
+      "fields": [
+        {
+          "name": "Company Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true
+        },
+        {
+          "name": "Website",
+          "type": "url"
+        },
+        {
+          "name": "Google Drive Folder",
+          "type": "url"
+        },
+        {
+          "name": "Google Group Email",
+          "type": "email"
+        },
+        {
+          "name": "Client Status",
+          "type": "singleSelect",
+          "options": [
+            "Active",
+            "Inactive",
+            "Prospect",
+            "Churned"
+          ],
+          "notes": "Sales-side status (legacy CRM field). Operations.Status below is the canonical operational status used by the Brain."
+        },
+        {
+          "name": "Total Lifetime Value",
+          "type": "currency"
+        },
+        {
+          "name": "Industry (AI)",
+          "type": "aiText",
+          "notes": "Airtable-AI-generated industry label."
+        },
+        {
+          "name": "Analytics Dashboard",
+          "type": "url"
+        },
+        {
+          "name": "Assigned Team Members",
+          "type": "multipleCollaborators"
+        },
+        {
+          "name": "Segment",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "E-commerce",
+            "Local Service",
+            "Agency Partner"
+          ],
+          "notes": "Drives Risk Watcher subclass selection (spec \u00a76.1\u2013\u00a76.3)."
+        },
+        {
+          "name": "Status",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Onboarding",
+            "Active",
+            "Mature",
+            "Renewal Window",
+            "Churned"
+          ],
+          "notes": "Canonical operational status \u2014 the Brain reads this, not Client Status above."
+        },
+        {
+          "name": "Account Manager",
+          "type": "singleCollaborator",
+          "required": true,
+          "notes": "Default Owner for Projects spawned for this account."
+        },
+        {
+          "name": "HIPAA",
+          "type": "checkbox",
+          "required": true,
+          "notes": "LOAD-BEARING (PRD \u00a74.1 layer 2). If true, this account and all linked Projects/Tasks/Contacts/Contracts are excluded from BigQuery sync at the Airtable filterByFormula layer. Manual control only \u2014 never written by an agent. Flag defaults false; enable only for regulated/sensitive accounts."
+        },
+        {
+          "name": "Engagement Start Date",
+          "type": "date"
+        },
+        {
+          "name": "Engagement End Date",
+          "type": "date",
+          "notes": "Empty if engagement is active."
+        },
+        {
+          "name": "Risk Baseline",
+          "type": "multilineText",
+          "notes": "JSON. Maintained by Risk Watcher (WS-G2). Humans don't edit."
+        },
+        {
+          "name": "Vantage Tenant ID",
+          "type": "singleLineText",
+          "notes": "Pointer to the account's Vantage data location for cross-reference (when applicable)."
+        },
+        {
+          "name": "Notes",
+          "type": "multilineText"
+        },
+        {
+          "name": "Pending Updates",
+          "type": "richText",
+          "notes": "ADR 0047 / CRM Auto-updater. Long-text staging area where the Auto-updater appends timestamped suggestions (new contacts, mention context, status nudges). Drafts-only per PRD \u00a74.7 \u2014 humans read, decide what to commit, delete the block. Non-canonical; never read back by another agent. Type bumped to richText 2026-05-28 per audit F10 \u2014 Airtable UI auto-upgraded the column."
+        },
+        {
+          "name": "Last Activity Timestamp",
+          "type": "lastModifiedTime"
+        }
+      ]
+    },
+    "Contacts": {
+      "description": "People associated with Accounts. The Triage Agent's sender resolver (PR 4g) joins Gmail.sender \u2192 Contacts.Email \u2192 Account \u2192 Project. sensitive-account cascade: Contacts inherits Account.HIPAA via the Account HIPAA lookup field; airtable_to_bq applies filterByFormula=NOT({Account HIPAA}). Personal CRM fields (Warmth, Last Contact, Next Followup, Relationship Type) added per ADR 0042; the Account link becomes optional in practice for personal contacts (the schema-level required constraint stays for backward compat with existing rows; sync's HIPAA filter handles null-lookup correctly).",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true
+        },
+        {
+          "name": "Role",
+          "type": "singleLineText"
+        },
+        {
+          "name": "Email",
+          "type": "email",
+          "notes": "JOIN KEY for sender_to_project_v \u2014 Gmail.sender exact-match lands here."
+        },
+        {
+          "name": "Phone",
+          "type": "phoneNumber"
+        },
+        {
+          "name": "LinkedIn URL",
+          "type": "url"
+        },
+        {
+          "name": "Account",
+          "type": "multipleRecordLinks",
+          "linked_table": "Accounts",
+          "required": true,
+          "max_links": 1,
+          "notes": "Required so sensitive-account cascade has an Account context."
+        },
+        {
+          "name": "Sales Owner",
+          "type": "singleCollaborator"
+        },
+        {
+          "name": "Notes",
+          "type": "multilineText"
+        },
+        {
+          "name": "Warmth",
+          "type": "singleSelect",
+          "options": [
+            "Hot",
+            "Warm",
+            "Cool",
+            "Cold"
+          ],
+          "notes": "ADR 0042 / PKM Phase 4. Personal-CRM warmth grade. Drives PersonalReEngagementSignal severity escalation (Hot/Warm + 2\u00d7 threshold \u2192 high; Hot OR 2\u00d7 threshold \u2192 medium; otherwise low). Manually maintained."
+        },
+        {
+          "name": "Last Contact",
+          "type": "date",
+          "notes": "ADR 0042 / PKM Phase 4. Date of last meaningful contact. Read directly by PersonalReEngagementSignal as the recency baseline. v1 manual; future write surface deferred."
+        },
+        {
+          "name": "Next Followup",
+          "type": "date",
+          "notes": "ADR 0042 / PKM Phase 4. Optional explicit followup date. NOT consumed by v1 signal \u2014 UI affordance + reserved for future Personal Brief."
+        },
+        {
+          "name": "Relationship Type",
+          "type": "singleSelect",
+          "options": [
+            "Friend",
+            "Mentor",
+            "Mentee",
+            "Collaborator",
+            "Family",
+            "Other"
+          ],
+          "notes": "ADR 0042 / PKM Phase 4. Drives per-relationship-type recency thresholds in PersonalReEngagementSignal (Friend/Other 60d, Mentor/Mentee 30d, Collaborator 21d, Family 90d). PersonalClientStateLoader gates on this being non-null \u2014 work-only contacts (null) are excluded from the Personal segment."
+        },
+        {
+          "name": "Account HIPAA",
+          "type": "multipleLookupValues",
+          "lookup_from_link": "Account",
+          "lookup_field": "HIPAA",
+          "required": true,
+          "notes": "LOAD-BEARING (PRD \u00a74.1 layer 2). Lookup of Accounts.HIPAA via the Account link. airtable_to_bq applies filterByFormula=NOT({Account HIPAA}). Derived field \u2014 never replicated to BigQuery (filtered out by schema_mapping.py)."
+        },
+        {
+          "name": "Pending Updates",
+          "type": "richText",
+          "notes": "ADR 0047 / CRM Auto-updater. Long-text staging area where the Auto-updater appends timestamped suggestions (Last Contact / Next Followup / Warmth / new context). Drafts-only per PRD \u00a74.7 \u2014 humans read and manually update the canonical fields. Non-canonical; never read back by another agent. Type bumped to richText 2026-05-28 per audit F10 \u2014 Airtable UI auto-upgraded the column."
+        }
+      ]
+    },
+    "Contracts": {
+      "description": "Formal agreements with clients. Linked to Accounts via the Account field. Projects link to Contracts via Projects.Contract (replaces the legacy Source Contract Record ID text field). sensitive-account cascade via Account HIPAA lookup.",
+      "fields": [
+        {
+          "name": "Contract Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true
+        },
+        {
+          "name": "Signed Date",
+          "type": "date"
+        },
+        {
+          "name": "Expiry Date",
+          "type": "date"
+        },
+        {
+          "name": "Contract URL",
+          "type": "url"
+        },
+        {
+          "name": "Service Tier",
+          "type": "singleSelect",
+          "options": [
+            "Basic",
+            "Standard",
+            "Premium",
+            "Enterprise"
+          ]
+        },
+        {
+          "name": "Services",
+          "type": "multipleSelects",
+          "options": [
+            "SEO",
+            "PPC",
+            "Website Design"
+          ],
+          "notes": "Multi-select. Option list manually kept aligned with Service Catalog row names."
+        },
+        {
+          "name": "Account",
+          "type": "multipleRecordLinks",
+          "linked_table": "Accounts",
+          "required": true,
+          "max_links": 1
+        },
+        {
+          "name": "Deal Value",
+          "type": "currency"
+        },
+        {
+          "name": "Renewal Reminder Date",
+          "type": "date"
+        },
+        {
+          "name": "Contract Status",
+          "type": "singleSelect",
+          "options": [
+            "Active",
+            "Expired",
+            "Pending Renewal",
+            "Terminated",
+            "Ready for Onboarding"
+          ]
+        },
+        {
+          "name": "Assigned Account Manager",
+          "type": "singleCollaborator"
+        },
+        {
+          "name": "Account HIPAA",
+          "type": "multipleLookupValues",
+          "lookup_from_link": "Account",
+          "lookup_field": "HIPAA",
+          "required": true,
+          "notes": "LOAD-BEARING. Same cascade pattern as Contacts.Account HIPAA."
+        }
+      ]
+    },
+    "Projects": {
+      "description": "Active units of work delivery. Linked to Accounts (one Account, many Projects) and optionally to a Contract. Per ADR 0020, the legacy Client link and Source Contract Record ID text field are replaced by Account (linked) and Contract (linked).",
+      "fields": [
+        {
+          "name": "Project Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true,
+          "notes": "Convention: '{Account} \u2014 {Service} \u2014 {Period or Phase}'. e.g. 'Acme Corp \u2014 Website Design \u2014 Q2 2026'."
+        },
+        {
+          "name": "Account",
+          "type": "multipleRecordLinks",
+          "linked_table": "Accounts",
+          "required": true,
+          "max_links": 1,
+          "notes": "Replaces the legacy Client link (ADR 0020)."
+        },
+        {
+          "name": "Service",
+          "type": "multipleRecordLinks",
+          "linked_table": "Service Catalog",
+          "required": true,
+          "max_links": 1,
+          "notes": "Linked record to Service Catalog, NOT a single-select. Single source of truth for service offerings (ADR 0011)."
+        },
+        {
+          "name": "Contract",
+          "type": "multipleRecordLinks",
+          "linked_table": "Contracts",
+          "max_links": 1,
+          "notes": "Optional \u2014 replaces the legacy Source Contract Record ID text field (ADR 0020). A retainer Contract may spawn multiple Projects."
+        },
+        {
+          "name": "Phase",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Discovery",
+            "Design",
+            "Build",
+            "Launch",
+            "Maintain",
+            "Closeout"
+          ],
+          "default": "Discovery"
+        },
+        {
+          "name": "Status",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Not Started",
+            "Active",
+            "Blocked",
+            "Complete",
+            "Cancelled"
+          ],
+          "default": "Not Started"
+        },
+        {
+          "name": "Health",
+          "type": "singleSelect",
+          "options": [
+            "Green",
+            "Yellow",
+            "Red"
+          ],
+          "default": "Green",
+          "notes": "Set manually OR by Risk Watcher. Yellow/Red requires Health Reason."
+        },
+        {
+          "name": "Health Reason",
+          "type": "multilineText",
+          "notes": "Required when Health \u2208 {Yellow, Red}. What's off, recovery plan, when we expect Green again."
+        },
+        {
+          "name": "Owner",
+          "type": "singleCollaborator",
+          "required": true,
+          "notes": "Defaults from Account.Account Manager when blank. Brain-drafted Tasks default to this Owner."
+        },
+        {
+          "name": "Contributors",
+          "type": "multipleCollaborators",
+          "notes": "Other team members working on this Project."
+        },
+        {
+          "name": "Start Date",
+          "type": "date"
+        },
+        {
+          "name": "Target End Date",
+          "type": "date"
+        },
+        {
+          "name": "Actual End Date",
+          "type": "date",
+          "notes": "Filled when Status = Complete."
+        },
+        {
+          "name": "Scope Document",
+          "type": "url",
+          "notes": "URL to the signed scope/SOW in Drive."
+        },
+        {
+          "name": "Goal Linked",
+          "type": "multipleRecordLinks",
+          "linked_table": "Goals",
+          "notes": "Optional \u2014 for Projects that directly advance a strategic goal."
+        },
+        {
+          "name": "Tasks",
+          "type": "multipleRecordLinks",
+          "linked_table": "Tasks",
+          "notes": "Reverse link populated by Tasks.Project."
+        },
+        {
+          "name": "Open Tasks Count",
+          "type": "count",
+          "rollup_from_link": "Tasks",
+          "rollup_filter": "Status != Done AND Status != Cancelled",
+          "notes": "Configured as a Count field in Airtable filtering on the linked Tasks."
+        },
+        {
+          "name": "Account HIPAA",
+          "type": "multipleLookupValues",
+          "lookup_from_link": "Account",
+          "lookup_field": "HIPAA",
+          "required": true,
+          "notes": "LOAD-BEARING (PRD \u00a74.1 layer 2). Lookup of Accounts.HIPAA via the Account link. airtable_to_bq applies filterByFormula=NOT({Account HIPAA}) at the source query so the sensitive-account cascade reaches Projects at the Airtable API layer. Derived field \u2014 never replicated to BigQuery (filtered out by schema_mapping.py). Replaces the legacy Client HIPAA lookup (ADR 0020)."
+        },
+        {
+          "name": "GitHub Repo URL",
+          "type": "url",
+          "notes": "Audit F11 (2026-05-28). Optional pointer to the Project's primary GitHub repository for orchestrator handoff."
+        },
+        {
+          "name": "Orchestrator Inbox",
+          "type": "multipleRecordLinks",
+          "linked_table": "Orchestrator Inbox",
+          "notes": "Audit F11 (2026-05-28). Reverse view of Orchestrator Inbox.Project link."
+        }
+      ]
+    },
+    "Tasks": {
+      "description": "Operational task list \u2014 the Brain's primary write target. Tasks created by Triage / Risk Watcher / Goal Steward arrive with Approval Status = 'Drafted by Agent' and are reviewed by the human Owner before being approved.",
+      "fields": [
+        {
+          "name": "Task Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true
+        },
+        {
+          "name": "Source",
+          "type": "singleSelect",
+          "required": false,
+          "options": [
+            "Manual",
+            "Triage Agent",
+            "Risk Watcher",
+            "Goal Steward",
+            "Other"
+          ],
+          "default": "Manual",
+          "notes": "NULLABLE at BQ sync layer \u2014 tasks manually created in Airtable without a Source set must not block the sync. All agent writers (Triage, CRM Auto-updater) set this explicitly. Required at Airtable UI level via validation rules."
+        },
+        {
+          "name": "Source Reference",
+          "type": "url",
+          "notes": "Link back to the originating signal: Gmail thread, Drive doc, calendar event."
+        },
+        {
+          "name": "Project",
+          "type": "multipleRecordLinks",
+          "linked_table": "Projects",
+          "required": true,
+          "max_links": 1,
+          "notes": "Required so sensitive-account cascade and ownership inheritance always have a Project context."
+        },
+        {
+          "name": "Account",
+          "type": "multipleLookupValues",
+          "lookup_from_link": "Project",
+          "lookup_field": "Account",
+          "notes": "Auto-derived from Project. Stored as a lookup so Tasks views can filter/group by Account without a separate join."
+        },
+        {
+          "name": "Owner",
+          "type": "singleCollaborator",
+          "notes": "Brain-drafted Tasks default to Project.Owner when account_owners_v can resolve it; otherwise NULL \u2014 humans set on approval per ADR 0022. Manual Tasks: Owner is set explicitly."
+        },
+        {
+          "name": "Action Type",
+          "type": "singleSelect",
+          "required": false,
+          "options": [
+            "Do It Now",
+            "Delegate",
+            "Defer",
+            "Schedule",
+            "Wait"
+          ],
+          "notes": "GTD model. Drives WS-D routing matrix. Drafts arriving via CRM Auto-updater (Approval Status = 'Drafted by Agent') legitimately have NULL Action Type \u2014 the human picks the GTD bucket at approval time. Required at Airtable UI level via validation rules, but allowed to be NULL at the sync/BQ layer."
+        },
+        {
+          "name": "Category",
+          "type": "singleSelect",
+          "options": [
+            "Calls",
+            "Computer",
+            "Errands",
+            "Office",
+            "Schedule",
+            "Team Meeting",
+            "Staff",
+            "Waiting For",
+            "Home"
+          ]
+        },
+        {
+          "name": "Task Type",
+          "type": "singleSelect",
+          "options": [
+            "Task",
+            "Project"
+          ],
+          "default": "Task",
+          "notes": "'Project' here means multi-step task. Most rows are 'Task'."
+        },
+        {
+          "name": "Wait Reason",
+          "type": "singleLineText",
+          "notes": "Required when Action Type = Wait."
+        },
+        {
+          "name": "Wait Started",
+          "type": "date",
+          "notes": "Required when Action Type = Wait. Drives aging logic."
+        },
+        {
+          "name": "Goal Linked",
+          "type": "multipleRecordLinks",
+          "linked_table": "Goals",
+          "notes": "Optional \u2014 for Tasks that advance a specific goal."
+        },
+        {
+          "name": "Status",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Open",
+            "In Progress",
+            "Done",
+            "Cancelled"
+          ],
+          "default": "Open"
+        },
+        {
+          "name": "Approval Status",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Approved",
+            "Drafted by Agent",
+            "Rejected"
+          ],
+          "default": "Approved",
+          "notes": "Brain-drafted Tasks land as 'Drafted by Agent'. 'Rejected' captures dismissed drafts for false-positive analysis (PRD \u00a713)."
+        },
+        {
+          "name": "Project HIPAA",
+          "type": "multipleLookupValues",
+          "lookup_from_link": "Project",
+          "lookup_field": "Account HIPAA",
+          "required": true,
+          "notes": "LOAD-BEARING (PRD \u00a74.1 layer 2). Transitive lookup of Accounts.HIPAA via Project.Account HIPAA. airtable_to_bq applies filterByFormula=NOT({Project HIPAA}) at the source query so the sensitive-account cascade reaches Tasks at the Airtable API layer. Derived field \u2014 never replicated to BigQuery. Field name kept as 'Project HIPAA' (not renamed) so hipaa_filters.py needs no rename."
+        },
+        {
+          "name": "Due Date",
+          "type": "date"
+        },
+        {
+          "name": "Completed Date",
+          "type": "date"
+        },
+        {
+          "name": "Technical Brief",
+          "type": "multilineText",
+          "notes": "Audit F11 (2026-05-28). Optional structured brief for the orchestrator handoff."
+        },
+        {
+          "name": "Context Snippet",
+          "type": "multilineText",
+          "notes": "Audit F11 (2026-05-28). Optional context excerpt captured from the source signal."
+        },
+        {
+          "name": "Git Branch",
+          "type": "singleLineText",
+          "notes": "Audit F11 (2026-05-28). Optional git branch name for orchestrator handoff."
+        },
+        {
+          "name": "PR Link",
+          "type": "url",
+          "notes": "Audit F11 (2026-05-28). Optional GitHub PR URL once the task lands a PR."
+        },
+        {
+          "name": "Orchestrator Inbox",
+          "type": "singleLineText",
+          "notes": "Audit F11 (2026-05-28). Free-text ID of the upstream Orchestrator Inbox row that spawned this Task. Stored as text (not a link) per the live Airtable shape."
+        }
+      ]
+    },
+    "Goals": {
+      "description": "Hierarchical strategic goals. Long-horizon goals contain shorter-horizon goals via Parent Goal links. Goal Steward (WS-G6) maintains Last Reviewed and prompts owners weekly for Goal Scores.",
+      "fields": [
+        {
+          "name": "Goal Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true
+        },
+        {
+          "name": "Owner",
+          "type": "singleCollaborator",
+          "notes": "Single-founder build: strategic goals are seeded from the goal hierarchy without an owner. Relaxed to non-required so ownerless goals don't fail the BQ sync (mirrors Tasks.Owner, commit 5ac5d0b7)."
+        },
+        {
+          "name": "Horizon",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "10-year",
+            "3-year",
+            "1-year",
+            "Quarterly",
+            "Weekly"
+          ]
+        },
+        {
+          "name": "Parent Goal",
+          "type": "multipleRecordLinks",
+          "linked_table": "Goals",
+          "max_links": 1,
+          "notes": "Required UNLESS Horizon = 10-year. Hierarchy invariant: parent's horizon must be longer (Weekly\u2192Quarterly, Quarterly\u21921-year, 1-year\u21923-year, 3-year\u219210-year)."
+        },
+        {
+          "name": "Area of Focus",
+          "type": "singleSelect",
+          "options": [
+            "Revenue",
+            "Team",
+            "Product",
+            "Personal",
+            "Education",
+            "Other"
+          ]
+        },
+        {
+          "name": "Description",
+          "type": "multilineText",
+          "notes": "What the goal is in human language."
+        },
+        {
+          "name": "Tactics",
+          "type": "multilineText",
+          "notes": "The 'how' \u2014 specific moves planned to achieve it."
+        },
+        {
+          "name": "Metrics",
+          "type": "multilineText",
+          "notes": "The numeric or observable definition of success."
+        },
+        {
+          "name": "Status",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Active",
+            "Achieved",
+            "Abandoned",
+            "Paused"
+          ],
+          "default": "Active"
+        },
+        {
+          "name": "Last Reviewed",
+          "type": "date",
+          "notes": "Updated by Goal Steward weekly when the owner submits a Goal Score."
+        },
+        {
+          "name": "Goal Scores",
+          "type": "multipleRecordLinks",
+          "linked_table": "Goal Scores",
+          "notes": "Reverse link populated by Goal Scores.Goal."
+        },
+        {
+          "name": "Tasks Linked",
+          "type": "multipleRecordLinks",
+          "linked_table": "Tasks",
+          "notes": "Reverse link populated by Tasks.Goal Linked."
+        },
+        {
+          "name": "Orchestrator Inbox",
+          "type": "multipleRecordLinks",
+          "linked_table": "Orchestrator Inbox",
+          "notes": "Audit F11 (2026-05-28). Reverse view of Orchestrator Inbox.Goal link."
+        }
+      ]
+    },
+    "Goal Scores": {
+      "description": "One row per goal per week. Time-series of self-assessment scores feeding the Weekly Synthesizer (WS-G5).",
+      "fields": [
+        {
+          "name": "Score Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true,
+          "notes": "Convention: '{Goal Name} \u2014 {YYYY-MM-DD}'. Goal Steward populates this when creating the row."
+        },
+        {
+          "name": "Goal",
+          "type": "multipleRecordLinks",
+          "linked_table": "Goals",
+          "required": true,
+          "max_links": 1
+        },
+        {
+          "name": "Week Of",
+          "type": "date",
+          "required": true,
+          "notes": "Monday of the week being scored."
+        },
+        {
+          "name": "Score",
+          "type": "number",
+          "required": true,
+          "min": 1,
+          "max": 10,
+          "notes": "1-10 self-assessment."
+        },
+        {
+          "name": "Notes",
+          "type": "multilineText",
+          "notes": "Why this score. Captured from the Chat prompt response."
+        },
+        {
+          "name": "Submitted By",
+          "type": "singleCollaborator"
+        }
+      ]
+    },
+    "Team": {
+      "description": "Team member registry. Workspace email is the join key for Brain ownership resolution \u2014 the Brain looks up the User collaborator's email and matches it to a row here. The User singleCollaborator carries the Airtable usrXXX id (ADR 0019); the Triage Agent uses it to populate Tasks.Owner explicitly when drafting.",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true
+        },
+        {
+          "name": "Workspace Email",
+          "type": "email",
+          "required": true,
+          "notes": "JOIN KEY. Must match the user's @example.com Workspace identity."
+        },
+        {
+          "name": "User",
+          "type": "singleCollaborator",
+          "_extract": "user_id",
+          "notes": "Airtable user collaborator. Sync extracts the usrXXX id (not email \u2014 Workspace Email already carries that). The Brain joins this in sender_to_project_v to populate Tasks.Owner explicitly when drafting (ADR 0019)."
+        },
+        {
+          "name": "Role",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Leadership",
+            "Account Manager",
+            "Salesperson",
+            "Specialist",
+            "Contractor"
+          ]
+        },
+        {
+          "name": "Active",
+          "type": "checkbox",
+          "required": true,
+          "default": true,
+          "notes": "Inactive members stay in the table for historical attribution but aren't candidates for new Project ownership."
+        },
+        {
+          "name": "Capacity Hours per Week",
+          "type": "number",
+          "notes": "Working capacity. Drives future utilization dashboards (deferred from v1)."
+        },
+        {
+          "name": "Slack Handle",
+          "type": "singleLineText"
+        },
+        {
+          "name": "Notes",
+          "type": "multilineText"
+        }
+      ]
+    },
+    "Service Catalog": {
+      "description": "Single source of truth for service offerings. Projects.Service is a linked record to this table. Adding a new service = add a row here; no schema migration anywhere else.",
+      "fields": [
+        {
+          "name": "Service Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true
+        },
+        {
+          "name": "Service Code",
+          "type": "singleLineText",
+          "required": true,
+          "notes": "Short identifier for filenames/queries. Must be unique. e.g. 'vantage-local', 'website-design', 'paid-ads-mgmt'."
+        },
+        {
+          "name": "Category",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Platform Subscription",
+            "Project-Based",
+            "Retainer"
+          ],
+          "notes": "Drives how Projects are spawned. Platform Subscription = no Projects expected; Project-Based = one Project per engagement; Retainer = one rolling Project per month."
+        },
+        {
+          "name": "Description",
+          "type": "multilineText"
+        },
+        {
+          "name": "Typical Engagement Length",
+          "type": "singleSelect",
+          "options": [
+            "One-time",
+            "1-3 months",
+            "3-6 months",
+            "6-12 months",
+            "Ongoing"
+          ]
+        },
+        {
+          "name": "Default Phase Sequence",
+          "type": "multilineText",
+          "notes": "Free-text default phase progression. e.g. 'Discovery \u2192 Design \u2192 Build \u2192 Launch \u2192 Closeout'."
+        },
+        {
+          "name": "Default Deliverables",
+          "type": "multilineText",
+          "notes": "Bulleted list of typical deliverables."
+        },
+        {
+          "name": "Standard Pricing Notes",
+          "type": "multilineText",
+          "notes": "Reference for sales \u2014 'starts at $X for Y', 'monthly retainer Z'."
+        },
+        {
+          "name": "Active",
+          "type": "checkbox",
+          "required": true,
+          "default": true,
+          "notes": "Sunset old services without losing historical Projects linked to them."
+        },
+        {
+          "name": "Notes",
+          "type": "multilineText"
+        },
+        {
+          "name": "Projects",
+          "type": "multipleRecordLinks",
+          "linked_table": "Projects",
+          "notes": "Reverse link populated by Projects.Service."
+        }
+      ]
+    },
+    "Risk Profiles": {
+      "description": "Per-segment trouble-signal config. Risk Watcher (WS-G2) reads these rows on each invocation to know what patterns to evaluate per segment. Adding a new pattern = add a row; the agent picks it up on the next run.",
+      "fields": [
+        {
+          "name": "Pattern Name",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true,
+          "notes": "e.g. 'Acknowledgment Gap', 'Silent After Deliverable', 'Klaviyo List Decline'."
+        },
+        {
+          "name": "Segment",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "E-commerce",
+            "Local Service",
+            "Agency Partner"
+          ]
+        },
+        {
+          "name": "Description",
+          "type": "multilineText",
+          "notes": "What the pattern detects + why it matters."
+        },
+        {
+          "name": "Severity Default",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "Critical",
+            "High",
+            "Medium",
+            "Low"
+          ]
+        },
+        {
+          "name": "Threshold Value",
+          "type": "number",
+          "notes": "Numeric threshold (e.g. 5 for '5 days'). Optional \u2014 some patterns are boolean."
+        },
+        {
+          "name": "Threshold Unit",
+          "type": "singleLineText",
+          "notes": "Unit for the threshold (e.g. 'business days', '%', 'count'). Free-text."
+        },
+        {
+          "name": "Window",
+          "type": "singleLineText",
+          "notes": "Comparison window (e.g. 'rolling 8 weeks', 'since last delivery'). Free-text."
+        },
+        {
+          "name": "Active",
+          "type": "checkbox",
+          "required": true,
+          "default": true
+        },
+        {
+          "name": "Notes",
+          "type": "multilineText"
+        }
+      ]
+    },
+    "Captures": {
+      "description": "Quick-capture form target for the PKM merge (ADR 0037 \u00a73). A public Airtable form view writes one row per submission. The Captures materializer (Phase 0 follow-up Cloud Run Job) reads airtable_replica.captures, materializes rows into agent_outputs.notes (scope='personal', note_kind='inbox'), sets Synced + Synced At, then deletes the Airtable row after one full sync cycle has confirmed the BQ write. Delete-after-sync prevents data loss if BQ INSERT succeeds but Airtable DELETE fails.",
+      "fields": [
+        {
+          "name": "Captured At",
+          "type": "createdTime",
+          "required": true,
+          "primary": true,
+          "notes": "Auto-populated. Used as the BQ row's created_at when materialized."
+        },
+        {
+          "name": "Id",
+          "type": "autoNumber",
+          "notes": "Auto-incrementing Airtable ID. Added in Airtable 2026-05; brought into schema 2026-05-28 per audit F11. Not used by the materializer (record._airtable_record_id is canonical) but replicated for completeness."
+        },
+        {
+          "name": "Note Text",
+          "type": "multilineText",
+          "required": false,
+          "notes": "The capture body. Materialized into agent_outputs.notes.markdown_content. Required at the Airtable UI level via the form's validation; allowed to be NULL at the sync/BQ layer because pre-form-validation rows (one observed 2026-05-06, record recad5cpr1dMpJsMY) can legitimately have empty Note Text and would otherwise block the entire airtable_replica.captures load."
+        },
+        {
+          "name": "Kind",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "note",
+            "decision",
+            "win",
+            "todo"
+          ],
+          "notes": "Capture kind. 'note' \u2192 agent_outputs.notes (default). 'decision' \u2192 agent_outputs.decisions with status='draft'. 'win' \u2192 agent_outputs.wins. 'todo' \u2192 asb-triage-input publish (so it lands in the agency triage queue alongside other actionable inputs)."
+        },
+        {
+          "name": "Scope Hint",
+          "type": "singleSelect",
+          "required": true,
+          "options": [
+            "personal",
+            "agency"
+          ],
+          "notes": "Default 'personal'. Surfaced as the BQ row's scope column. The materializer respects this hint; downstream queries filter accordingly."
+        },
+        {
+          "name": "Synced",
+          "type": "checkbox",
+          "notes": "Set TRUE by the materializer after a successful BQ write. The deletion guard waits one additional sync cycle past Synced=TRUE before deleting the Airtable row, so a sync failure never loses capture content."
+        },
+        {
+          "name": "Synced At",
+          "type": "date",
+          "notes": "Date the row was synced (configure the Airtable date field with 'Include time' enabled if you want sub-day granularity). Drives the delete-after-sync guard along with the BQ replica's _synced_at system column."
+        }
+      ]
+    },
+    "Orchestrator Inbox": {
+      "description": "Developer-workflow inbox for orchestrator requests against Projects and Goals (added in Airtable 2026-05; brought into schema 2026-05-28 per audit finding F7). Centralizes incoming requests with their links to Projects, Goals, and the Tasks they spawn. No sensitive-account cascade \u2014 entries are operator-authored against internal projects.",
+      "fields": [
+        {
+          "name": "Title",
+          "type": "singleLineText",
+          "required": true,
+          "primary": true,
+          "notes": "Short label for the request."
+        },
+        {
+          "name": "Body",
+          "type": "multilineText",
+          "notes": "Request body \u2014 what the orchestrator should act on."
+        },
+        {
+          "name": "Project",
+          "type": "multipleRecordLinks",
+          "linked_table": "Projects",
+          "max_links": 1,
+          "notes": "Optional Project link (single preferred). Joined with Goal to scope the request."
+        },
+        {
+          "name": "Goal",
+          "type": "multipleRecordLinks",
+          "linked_table": "Goals",
+          "max_links": 1,
+          "notes": "Optional Goal link (single preferred)."
+        },
+        {
+          "name": "Priority",
+          "type": "number",
+          "notes": "Integer priority (precision 0 in Airtable). Caller-set."
+        },
+        {
+          "name": "Repo Hint",
+          "type": "singleLineText",
+          "notes": "Optional repo identifier (e.g. 'agency-brain') for the implementer."
+        },
+        {
+          "name": "Requester",
+          "type": "singleCollaborator"
+        },
+        {
+          "name": "Notes",
+          "type": "multilineText"
+        },
+        {
+          "name": "Status",
+          "type": "singleSelect",
+          "options": [
+            "Submitted",
+            "In Progress",
+            "Done",
+            "Cancelled"
+          ],
+          "notes": "Option list reflects the live Airtable state as of 2026-05-28; update both sides together."
+        },
+        {
+          "name": "Synced At",
+          "type": "dateTime",
+          "notes": "Timestamp of last orchestrator sync against this row."
+        },
+        {
+          "name": "Created Task",
+          "type": "singleLineText",
+          "notes": "Airtable record id of the spawned Task (recXXX). Free-text for now; not a linked field."
+        },
+        {
+          "name": "Sync Error",
+          "type": "multilineText",
+          "notes": "Populated by the orchestrator on sync failure for operator visibility."
+        }
+      ]
+    }
+  },
+  "_portfolio_note": "The checkbox field remains named HIPAA in this schema because sync filters, lookup cascades, and security tests key off that exact field name. In product language this is sensitive / regulated-account isolation \u2014 flipping the flag excludes the account and linked records from BigQuery sync."
+}

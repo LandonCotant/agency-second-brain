@@ -1,0 +1,44 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. The reflection needs the same set as the morning brief
+# (ADR 0036 reuses the morning_brief calendar + gmail clients) plus the
+# ADR 0040 §5 / §6 additions for REFLECT-mode structured extraction
+# plus ADR 0044's Reflection Doc surface:
+#  - google-cloud-bigquery (read tasks/triaged_items/morning_briefs/risk_flags + write reflections + audit rows + decisions + wins)
+#  - google-cloud-aiplatform (vertexai.GenerativeModel direct call per ADR 0036 §2 — PROMPT mode prose path)
+#  - google-genai (google.genai.Client for response_schema-constrained REFLECT-mode extraction per ADR 0040 §5)
+#  - google-cloud-pubsub (publish extracted todos to asb-triage-input per ADR 0040 §6)
+#  - google-api-python-client + google-auth (DWD for Calendar + Gmail drafts; ADR 0044 ADC for Drive write)
+#  - PyYAML (load prompts/evening_reflection/standard_questions.yaml at runtime per ADR 0044)
+#
+# Per the codebase gotchas section in CLAUDE.md: every cross-boundary import
+# must be in this Dockerfile or it'll fail at runtime, not build time. PR #82/#83
+# was the cautionary tale.
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-aiplatform>=1.46" \
+    "google-genai>=1.0" \
+    "google-cloud-pubsub>=2.21" \
+    "google-api-python-client>=2.140" \
+    "google-auth>=2.32" \
+    "PyYAML>=6.0"
+
+# Source + prompts. The standard reflection questions YAML is loaded at
+# runtime by common.standard_questions.load_standard_questions; ship it
+# alongside src/ so the Cloud Run Job's image carries it.
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.evening_reflection.main"]

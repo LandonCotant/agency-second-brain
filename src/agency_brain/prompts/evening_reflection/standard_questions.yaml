@@ -1,0 +1,31 @@
+# Standard reflection questions rendered into the daily Evening Reflection Doc
+# (ADR 0040 + 0044 — REFLECT mode). See common/standard_questions.py for the
+# loader and shape contract.
+#
+# These are anchored across days — the ritual matters more than novelty. Edit
+# this file and ship a PR; `mode: all` keeps every question every day until
+# the user says otherwise.
+#
+# Custom questions are LLM-generated per day from that day's themes (handled
+# in the structured-extraction prompt, not this file).
+
+questions:
+  - id: worked_today
+    prompt: "What worked today that's worth repeating?"
+    weight: 1.0
+  - id: didnt_work
+    prompt: "What didn't work, and what's the smallest experiment to fix it?"
+    weight: 1.0
+  - id: drift_from_goals
+    prompt: "Where did I drift from this quarter's goals, and was the drift intentional?"
+    weight: 0.8
+  - id: carry_tomorrow
+    prompt: "What's worth carrying into tomorrow — one thing, not five?"
+    weight: 1.0
+  - id: moment_to_remember
+    prompt: "Was there a moment today I want to remember in a year?"
+    weight: 0.7
+
+rotation:
+  mode: all      # 'all' (every question every day) or 'sample' (weight-pick sample_n)
+  sample_n: 4    # only used when mode='sample'

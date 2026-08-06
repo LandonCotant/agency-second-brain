@@ -1,0 +1,29 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps for the Calendar ingester (ADR 0046):
+#  - google-cloud-bigquery       (MERGE into agent_outputs.notes + audit log)
+#  - google-cloud-aiplatform     (Vertex init for embeddings)
+#  - google-genai                 (genai.Client(vertexai=True) — VertexEmbedder, audit F4 migration)
+#  - google-api-python-client    (Calendar v3 list_events)
+#  - google-auth                 (DWD impersonation of asb-agent-triage-sa)
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-aiplatform>=1.46" \
+    "google-genai>=1.0" \
+    "google-api-python-client>=2.140" \
+    "google-auth>=2.32"
+
+COPY src/ ./src/
+ENV PYTHONPATH=/app/src
+
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.calendar_ingester.main"]

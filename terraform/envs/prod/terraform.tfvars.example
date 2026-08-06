@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+org_id            = "000000000000"
+billing_account   = "000000-000000-000000"
+customer_id       = "C00000000"
+owner_email       = "owner@example.com"
+admin_group_email = "asb-admins@example.com"
+region            = "us-central1"

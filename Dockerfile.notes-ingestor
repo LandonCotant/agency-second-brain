@@ -1,0 +1,35 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Runtime deps. The notes ingestor needs:
+#  - google-cloud-bigquery       (read watermark + dedup; write notes + audit rows)
+#  - google-cloud-pubsub         (publish into asb-triage-input with ordering keys)
+#  - google-genai                (multimodal generate + embed; audit F4 migration 2026-05-28
+#                                 from deprecated vertexai SDK per EOL 2026-06-24)
+#  - google-api-python-client    (Drive v3: list/download/move PDFs)
+#  - google-auth                 (ADC scoped to drive)
+COPY pyproject.toml ./
+RUN pip install \
+    "google-cloud-bigquery>=3.20" \
+    "google-cloud-pubsub>=2.21" \
+    "google-genai>=1.0" \
+    "google-api-python-client>=2.140" \
+    "google-auth>=2.32"
+
+# Source only — no schema.json / runbooks / docs/dwd_scopes.md needed at
+# runtime (ADR 0031: the ingestor reads Drive, writes BQ, publishes to
+# Pub/Sub; it does not read any in-repo doc, unlike the audit image).
+COPY src/ ./src/
+
+ENV PYTHONPATH=/app/src
+
+# Cloud Run Jobs require a non-root user.
+USER nobody
+
+CMD ["python", "-m", "agency_brain.agents.notes_ingestor.main"]

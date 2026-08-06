@@ -1,0 +1,16 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_project_iam_member.viewer_sa",
+      "type": "google_project_iam_member",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "project": "agency-brain-demo",
+          "role": "roles/viewer",
+          "member": "serviceAccount:asb-sync-airtable-sa@agency-brain-demo.iam.gserviceaccount.com"
+        }
+      }
+    }
+  ]
+}
